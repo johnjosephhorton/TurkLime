@@ -1,0 +1,8 @@
+{% extends "_base.htm" %}
+{% block bodycontent %}
+<h2>Experiment Details---Please check before launching</h2>
+{{ message }}
+You account balance is: {{balance}} </br>
+<form action="/launch/{{ blob_key }}">
+<input type="submit" value="Launch Experiment">
+{% endblock %}
