@@ -73,11 +73,11 @@ class UploadFormHandler(blobstore_handlers.BlobstoreUploadHandler):
 
     blob_info = upload_files[0]
 
-    self.redirect('/serve/%s' % blob_info.key())
+    self.redirect('/confirm/%s' % blob_info.key())
 
 
 # Experimenter see this screen before the actual program is launched on MTurk.
-class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
+class ConfirmationFormHandler(blobstore_handlers.BlobstoreDownloadHandler):
   def get(self, raw_key):
     blob_reader = blobstore.BlobReader(str(urllib.unquote(raw_key)))
 
@@ -89,7 +89,7 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
         account_balance = connection.get_account_balance()[0]
 
-        self._render('templates/confirm_details.htm', {
+        self._render('templates/confirmation_form.htm', {
           'experiment_params': [Struct(key=k, value=data[k]) for k in data.keys()]
         , 'account_balance': account_balance
         , 'form_action': '/launch/' + raw_key
@@ -185,7 +185,7 @@ def handlers():
   return [
     ('/', MainHandler)
   , ('/upload', UploadFormHandler)
-  , ('/serve/([^/]+)?', ServeHandler)
+  , ('/confirm/([^/]+)?', ConfirmationFormHandler)
   , ('/launch/([^/]+)?', LaunchExperiment)
   , ('/landing/([^/]+)?', LandingPage)
   , ('/submit', BackToTurk)
