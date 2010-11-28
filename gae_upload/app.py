@@ -70,6 +70,9 @@ class ConfirmationFormHandler(RequestHandler):
     assert(response.status == True)
 
     if response[0].IsValid == 'True':
+      experiment.task_id = response[0].HITId
+      experiment.put()
+
       link = Struct(href='/', text='Create another experiment')
 
       self.render('templates/info.htm', {'message': 'Created HIT: ' + response[0].HITId, 'link': link})
