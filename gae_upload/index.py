@@ -35,7 +35,6 @@ class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
   def get(self, raw_resource):
     resource = str(urllib.unquote(raw_resource))
-    blob_info = blobstore.BlobInfo.get(resource)
     blob_reader = blobstore.BlobReader(resource)
     message = ""
     try:
@@ -73,7 +72,6 @@ class Experiment(db.Model):
 class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
   def get(self, raw_resource):
     resource = str(urllib.unquote(raw_resource))
-    blob_info = blobstore.BlobInfo.get(resource)
     blob_reader = blobstore.BlobReader(resource)
     d = yaml.load(blob_reader)
     turk_conn = MTurkConnection(
