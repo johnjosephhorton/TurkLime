@@ -76,17 +76,17 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
       d = yaml.load(blob_reader)
       for key in d.keys():
         message = message + "%s: %s </br>"%(key, d[key])
-        try:
-          connection = mturk_connection(d)
-          balance = connection.get_account_balance()[0]
-          temp = os.path.join(os.path.dirname(__file__), 'templates/confirm_details.htm')
-          outstr = template.render(temp, {'message': message, 'blob_key': raw_resource, 'balance': balance})
-        except (BotoClientError, BotoServerError), response:
-          logging.error(boto_response_error(response))
-          temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
-          outstr = template.render(temp, {'message':"""Your YAML file parses, but there is something wrong with
-                                                       your AWS keys or the AWS host name </br>
-                                                        <a href="/">Return to file input</a>"""})
+      try:
+        connection = mturk_connection(d)
+        balance = connection.get_account_balance()[0]
+        temp = os.path.join(os.path.dirname(__file__), 'templates/confirm_details.htm')
+        outstr = template.render(temp, {'message': message, 'blob_key': raw_resource, 'balance': balance})
+      except (BotoClientError, BotoServerError), response:
+        logging.error(boto_response_error(response))
+        temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
+        outstr = template.render(temp, {'message':"""Your YAML file parses, but there is something wrong with
+                                                     your AWS keys or the AWS host name </br>
+                                                      <a href="/">Return to file input</a>"""})
     except yaml.YAMLError:
       message = """There was a problem with your YAML file format. </br>
                    Check the example. </br>
