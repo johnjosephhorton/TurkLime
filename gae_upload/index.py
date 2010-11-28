@@ -112,7 +112,6 @@ class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
     key = experiment.put() # gets primary key from datastore
     url = '%s/landing/%s' % (self.request.host_url, str(key))
     q = ExternalQuestion(external_url=url, frame_height=800)
-    keywords=['easy','fast','interesting']
     response = create_hit(connection, q, d)
     assert(response.status == True)
     temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
