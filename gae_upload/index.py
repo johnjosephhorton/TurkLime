@@ -128,7 +128,9 @@ class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
 class LandingPage(RequestHandler):
   def get(self, gae_key):
     gae_key = str(urllib.unquote(gae_key))
+
     worker_id = self.request.GET.get('workerId', '')
+
     assignment_id = self.request.GET.get('assignmentId', '')
 
     if assignment_id == 'ASSIGNMENT_ID_NOT_AVAILABLE':
@@ -140,24 +142,30 @@ class LandingPage(RequestHandler):
 
       self.render('templates/info.htm', {'message': message})
     else:
-      key = assignment_id
-      base = db.get(gae_key).url
-      redirect_url = base + "?passthru=key&key=%s" % key
-      self.redirect(redirect_url)
+      base_url = db.get(gae_key).url
+
+      params = {'passthru': 'key', 'key': assignment_id}
+
+      url = '%s?%s' % (base_url, urllib.urlencode(params))
+
+      self.redirect(url)
 
 
 # parses the submit originating from Limesurvey---passes back to
 # to MTurk to close the loop. Passes the assignment id, survey id and ssid.
 class BackToTurk(RequestHandler):
   def get(self):
-    assignment_id = self.request.GET.get('key', '')
-    ssid = self.request.GET.get('ssid', '')
-    sid = self.request.GET.get('sid', '')
-    # need to add survey ID from limesurvey
-    #sandbox_url = "http://workersandbox.mturk.com/mturk/externalSubmit"
-    sandbox_url = "http://www.mturk.com/mturk/externalSubmit"
-    param = "?assignmentId=" + assignment_id + "&response_id=" + ssid + "&survey_id=" + sid
-    self.redirect(sandbox_url + param)
+    params = {
+      'assignmentId': self.request.GET.get('key', '')
+    , 'response_id': self.request.GET.get('ssid', '')
+    , 'survey_id': self.request.GET.get('sid', '')
+    }
+
+    host_url = 'https://www.mturk.com' # TODO: use turkSubmitTo parameter passed into LandingPage
+
+    submit_url = '%s/mturk/externalSubmit?%s' % (host_url, urllib.urlencode(params))
+
+    self.redirect(submit_url)
 
 
 def handlers():
