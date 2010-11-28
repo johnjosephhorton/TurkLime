@@ -56,18 +56,23 @@ class RequestHandler(webapp.RequestHandler):
     self.write(template.render(path, params))
 
 
-# Experimenters upload experiment-defining YAML here
 class MainHandler(RequestHandler):
   def get(self):
-    self.render('templates/create_experiment.htm', {
-      'upload_url': blobstore.create_upload_url('/upload')
+    self.redirect('/upload')
+
+
+# Experimenters upload experiment-defining YAML here
+class UploadFormHandler(blobstore_handlers.BlobstoreUploadHandler):
+  def get(self):
+    self.render('templates/upload_form.htm', {
+      'form_action': blobstore.create_upload_url('/upload')
     })
 
-
-class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
   def post(self):
     upload_files = self.get_uploads('file') # 'file' is file upload field in the form
+
     blob_info = upload_files[0]
+
     self.redirect('/serve/%s' % blob_info.key())
 
 
@@ -179,7 +184,7 @@ class BackToTurk(RequestHandler):
 def handlers():
   return [
     ('/', MainHandler)
-  , ('/upload', UploadHandler)
+  , ('/upload', UploadFormHandler)
   , ('/serve/([^/]+)?', ServeHandler)
   , ('/launch/([^/]+)?', LaunchExperiment)
   , ('/landing/([^/]+)?', LandingPage)
