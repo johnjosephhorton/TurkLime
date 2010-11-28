@@ -110,7 +110,7 @@ class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
     experiment = Experiment()
     experiment.url = d['external_hit_url']
     key = experiment.put() # gets primary key from datastore
-    url = "http://unconfounded.appspot.com/landing/" + str(key)
+    url = '%s/landing/%s' % (self.request.host_url, str(key))
     q = ExternalQuestion(external_url=url, frame_height=800)
     keywords=['easy','fast','interesting']
     response = create_hit(connection, q, d)
