@@ -19,7 +19,6 @@ class MainHandler(RequestHandler):
     self.redirect('/upload')
 
 
-# Experimenters upload experiment-defining YAML here
 class UploadFormHandler(blobstore_handlers.BlobstoreUploadHandler):
   def get(self):
     params = {'form_action': blobstore.create_upload_url('/upload')}
@@ -36,7 +35,6 @@ class UploadFormHandler(blobstore_handlers.BlobstoreUploadHandler):
     self.redirect(confirmation_form_url)
 
 
-# Experimenter see this screen before the actual program is launched on MTurk.
 class ConfirmationFormHandler(RequestHandler):
   @upload_required
   @mturk_connection_required
@@ -83,7 +81,6 @@ class ConfirmationFormHandler(RequestHandler):
     })
 
 
-# grabs the AssignmentId and workerId from a visiting worker
 class MechanicalTurkTaskHandler(RequestHandler):
   @experiment_required
   def get(self):
@@ -105,8 +102,6 @@ class MechanicalTurkTaskHandler(RequestHandler):
       self.redirect(url)
 
 
-# parses the submit originating from Limesurvey---passes back to
-# to MTurk to close the loop. Passes the assignment id, survey id and ssid.
 class MechanicalTurkSubmitHandler(RequestHandler):
   def get(self):
     params = {
