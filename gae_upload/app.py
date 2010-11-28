@@ -5,6 +5,11 @@ from google.appengine.ext.webapp.util import run_wsgi_app as run_wsgi
 from google.appengine.ext import blobstore
 from google.appengine.ext.webapp import blobstore_handlers
 
+from turklime.http import RequestHandler
+from turklime.http import upload_required, mturk_connection_required, experiment_required
+from turklime.models import Experiment
+from turklime import mturk
+
 from boto.mturk.question import ExternalQuestion
 
 import urllib, logging
@@ -60,7 +65,7 @@ class ConfirmationFormHandler(RequestHandler):
 
     question = ExternalQuestion(external_url=url, frame_height=800)
 
-    response = create_hit(self.connection, question, self.data)
+    response = mturk.create_hit(self.connection, question, self.data)
 
     assert(response.status == True)
 
