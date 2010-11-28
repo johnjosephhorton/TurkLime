@@ -2,4 +2,8 @@
 
 {% block bodycontent %}
   <h2>{{ message }}</h2>
+
+  {% if link %}
+    <p><a href="{{ link.href|escape }}">{{ link.text|escape }}</a></p>
+  {% endif %}
 {% endblock %}

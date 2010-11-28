@@ -3,11 +3,13 @@
 {% block bodycontent %}
   <h2>Experiment Details---Please check before launching</h2>
 
-  {{ message }}
+{% for param in experiment_params %}
+  <p>{{ param.key|escape }}: {{ param.value|escape }}</p>
+{% endfor %}
 
-  <p>Your account balance is: {{ balance }}</p>
+  <p>Your account balance is: {{ account_balance|escape }}</p>
 
-  <form action="/launch/{{ blob_key }}">
+  <form action="{{ form_action|escape }}">
     <p><input type="submit" value="Launch Experiment"></p>
   </form>
 {% endblock %}

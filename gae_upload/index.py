@@ -43,6 +43,11 @@ def boto_response_error(response):
   return '%s: %s' % (response.errors[0][0], response.errors[0][1])
 
 
+class Struct(object):
+  def __init__(self, **kwargs):
+    self.__dict__ = kwargs
+
+
 class RequestHandler(webapp.RequestHandler):
   def write(self, data):
     self.response.out.write(data)
@@ -68,33 +73,36 @@ class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
 
 # Experimenter see this screen before the actual program is launched on MTurk.
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
-  def get(self, raw_resource):
-    resource = str(urllib.unquote(raw_resource))
-    blob_reader = blobstore.BlobReader(resource)
-    message = ""
+  def get(self, raw_key):
+    blob_reader = blobstore.BlobReader(str(urllib.unquote(raw_key)))
+
     try:
-      d = yaml.load(blob_reader)
-      for key in d.keys():
-        message = message + "%s: %s </br>"%(key, d[key])
+      data = yaml.load(blob_reader)
+
       try:
-        connection = mturk_connection(d)
-        balance = connection.get_account_balance()[0]
-        temp = os.path.join(os.path.dirname(__file__), 'templates/confirm_details.htm')
-        outstr = template.render(temp, {'message': message, 'blob_key': raw_resource, 'balance': balance})
+        connection = mturk_connection(data)
+
+        account_balance = connection.get_account_balance()[0]
+
+        self._render('templates/confirm_details.htm', {
+          'experiment_params': [Struct(key=k, value=data[k]) for k in data.keys()]
+        , 'account_balance': account_balance
+        , 'form_action': '/launch/' + raw_key
+        })
       except (BotoClientError, BotoServerError), response:
         logging.error(boto_response_error(response))
-        temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
-        outstr = template.render(temp, {'message':"""Your YAML file parses, but there is something wrong with
-                                                     your AWS keys or the AWS host name </br>
-                                                      <a href="/">Return to file input</a>"""})
-    except yaml.YAMLError:
-      message = """There was a problem with your YAML file format. </br>
-                   Check the example. </br>
-                   <a href="/">Return to file input</a>"""
-      temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
-      outstr = template.render(temp, {'message': message})
 
-    self.response.out.write(outstr)
+        self._render_error('Error: bad AWS credentials')
+    except yaml.YAMLError:
+      self._render_error('Error: badly formatted YAML file')
+
+  def _render_error(self, message):
+    link = Struct(href='/', text='Return to upload form')
+
+    self._render('templates/info.htm', {'message': message, 'link': link})
+
+  def _render(self, path, params):
+    self.response.out.write(template.render(path, params))
 
 
 class Experiment(db.Model):
