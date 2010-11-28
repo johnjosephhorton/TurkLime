@@ -77,6 +77,23 @@ def mturk_connection_required(fn):
   return _fn
 
 
+def experiment_required(fn):
+  def _fn(self, *args, **kwargs):
+    key = self.request.get('key', None)
+
+    if key:
+      try:
+        self.experiment = Experiment.get(key)
+
+        return fn(self, *args, **kwargs)
+      except db.BadKeyError:
+        self.bad_request('Bad key')
+    else:
+      self.bad_request('No key')
+
+  return _fn
+
+
 class Struct(object):
   def __init__(self, **kwargs):
     self.__dict__ = kwargs
@@ -150,7 +167,7 @@ class ConfirmationFormHandler(RequestHandler):
 
     key = experiment.put()
 
-    url = '%s/landing/%s' % (self.request.host_url, str(key))
+    url = '%s/task?%s' % (self.request.host_url, urllib.urlencode({'key': key}))
 
     question = ExternalQuestion(external_url=url, frame_height=800)
 
@@ -172,28 +189,23 @@ class ConfirmationFormHandler(RequestHandler):
 
 
 # grabs the AssignmentId and workerId from a visiting worker
-class LandingPage(RequestHandler):
-  def get(self, gae_key):
-    gae_key = str(urllib.unquote(gae_key))
+class MechanicalTurkTaskHandler(RequestHandler):
+  @experiment_required
+  def get(self):
+    worker_id = self.request.GET.get('workerId', None)
 
-    worker_id = self.request.GET.get('workerId', '')
+    assignment_id = self.request.GET.get('assignmentId', None)
 
-    assignment_id = self.request.GET.get('assignmentId', '')
-
-    if assignment_id == 'ASSIGNMENT_ID_NOT_AVAILABLE':
-      message = """You need to accept the HIT"""
-
-      self.render('templates/info.htm', {'message': message})
-    elif worker_id == "":
-      message = """Cannot parse your workerId. Are you accessing this page from outside MTurk?"""
-
-      self.render('templates/info.htm', {'message': message})
+    if worker_id is None:
+      self.bad_request('No workerId')
+    elif assignment_id is None:
+      self.bad_request('No assignmentId')
+    elif assignment_id == 'ASSIGNMENT_ID_NOT_AVAILABLE':
+      self.render('templates/info.htm', {'message': 'You need to accept the HIT'})
     else:
-      base_url = db.get(gae_key).url
-
       params = {'passthru': 'key', 'key': assignment_id}
 
-      url = '%s?%s' % (base_url, urllib.urlencode(params))
+      url = '%s?%s' % (self.experiment.url, urllib.urlencode(params))
 
       self.redirect(url)
 
@@ -220,7 +232,7 @@ def handlers():
     ('/', MainHandler)
   , ('/upload', UploadFormHandler)
   , ('/confirm', ConfirmationFormHandler)
-  , ('/landing/([^/]+)?', LandingPage)
+  , ('/task', MechanicalTurkTaskHandler)
   , ('/submit', BackToTurk)
   ]
 
