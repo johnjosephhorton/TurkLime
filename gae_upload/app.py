@@ -95,12 +95,10 @@ class MechanicalTurkTaskHandler(RequestHandler):
 
     assignment_id = self.request.GET.get('assignmentId', None)
 
-    if worker_id is None:
-      self.bad_request('No workerId')
-    elif assignment_id is None:
+    if assignment_id is None:
       self.bad_request('No assignmentId')
     elif assignment_id == 'ASSIGNMENT_ID_NOT_AVAILABLE':
-      self.render('templates/info.htm', {'message': 'You need to accept the HIT'})
+      self.render('templates/info.htm', {'message': 'Please accept the HIT'})
     else:
       params = {'passthru': 'key', 'key': assignment_id}
 
