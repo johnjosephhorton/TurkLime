@@ -221,7 +221,7 @@ class MechanicalTurkTaskHandler(RequestHandler):
 
 # parses the submit originating from Limesurvey---passes back to
 # to MTurk to close the loop. Passes the assignment id, survey id and ssid.
-class BackToTurk(RequestHandler):
+class MechanicalTurkSubmitHandler(RequestHandler):
   def get(self):
     params = {
       'assignmentId': self.request.GET.get('key', '')
@@ -242,7 +242,7 @@ def handlers():
   , ('/upload', UploadFormHandler)
   , ('/confirm', ConfirmationFormHandler)
   , ('/task', MechanicalTurkTaskHandler)
-  , ('/submit', BackToTurk)
+  , ('/submit', MechanicalTurkSubmitHandler)
   ]
 
 
