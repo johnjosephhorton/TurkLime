@@ -1,14 +1,12 @@
-#Experiment Details YAML
-
-aws_secret_access_key: <>
 aws_access_key_id: <>
+aws_secret_access_key: <>
 aws_host: mechanicalturk.sandbox.amazonaws.com
 
+title: Estimate the square root of 2
 external_hit_url: http://209.20.81.65/limesurvey/index.php?sid=52692
 lifetime: 3600
 max_assignments: 1
 approval_delay: 3600
-title: Estimate the square root of 2
 keywords:
  - easy
  - fast
@@ -21,4 +19,3 @@ response_groups:
  - HITDetail
  - HITQuestion
  - HITAssignmentSummary
-
