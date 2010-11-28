@@ -133,11 +133,9 @@ class UploadFormHandler(blobstore_handlers.BlobstoreUploadHandler):
     self.response.out.write(output)
 
   def post(self):
-    upload_files = self.get_uploads('file') # 'file' is file upload field in the form
+    key = self.get_uploads('file')[0].key()
 
-    blob_info = upload_files[0]
-
-    confirmation_form_url = '/confirm?' + urllib.urlencode({'key': blob_info.key()})
+    confirmation_form_url = '/confirm?' + urllib.urlencode({'key': key})
 
     self.redirect(confirmation_form_url)
 
@@ -147,11 +145,9 @@ class ConfirmationFormHandler(RequestHandler):
   @upload_required
   @mturk_connection_required
   def get(self):
-    account_balance = self.connection.get_account_balance()[0]
-
     self.render('templates/confirmation_form.htm', {
-      'experiment_params': self._experiment_params()
-    , 'account_balance': account_balance
+      'experiment_params': [self._experiment_param(key, self.data[key]) for key in sorted(self.data.keys())]
+    , 'account_balance': self.connection.get_account_balance()[0]
     , 'form_action': self.request.url
     })
 
@@ -179,22 +175,16 @@ class ConfirmationFormHandler(RequestHandler):
     else:
       self._render_error('Error: could not create HIT')
 
-  def _experiment_params(self):
-    params = []
+  def _experiment_param(self, key, value):
+    if type(value) == list: value = ', '.join(value)
 
-    for key in sorted(self.data.keys()):
-      value = self.data[key]
-
-      if type(value) == list: value = ', '.join(value)
-
-      params.append(Struct(label=key.replace('_', ' ').capitalize(), value=value))
-
-    return params
+    return Struct(label=key.replace('_', ' ').capitalize(), value=value)
 
   def _render_error(self, message):
-    link = Struct(href='/', text='Return to upload form')
-
-    self.render('templates/info.htm', {'message': message, 'link': link})
+    self.render('templates/info.htm', {
+      'message': message
+    , 'link': Struct(href='/', text='Return to upload form')
+    })
 
 
 # grabs the AssignmentId and workerId from a visiting worker
