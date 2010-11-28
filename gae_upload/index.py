@@ -24,6 +24,21 @@ def mturk_connection(data):
   )
 
 
+def create_hit(connection, question, data):
+  return connection.create_hit(
+    question=question
+  , lifetime=data['lifetime']
+  , max_assignments=data['max_assignments']
+  , title=data['title']
+  , keywords=data['keywords']
+  , reward=data['reward']
+  , duration=data['duration']
+  , approval_delay=data['approval_delay']
+  , annotation=data['annotation']
+  , response_groups=data['response_groups']
+  )
+
+
 def boto_response_error(response):
   return '%s: %s' % (response.errors[0][0], response.errors[0][1])
 
@@ -98,23 +113,13 @@ class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
     url = "http://unconfounded.appspot.com/landing/" + str(key)
     q = ExternalQuestion(external_url=url, frame_height=800)
     keywords=['easy','fast','interesting']
-    create_hit_rs = connection.create_hit(
-      question=q,
-      lifetime= d['lifetime'],
-      max_assignments= d['max_assignments'],
-      title=d['title'],
-      keywords=d['keywords'],
-      reward = d['reward'],
-      duration=d['duration'],
-      approval_delay= d['approval_delay'],
-      annotation=d['annotation'],
-      response_groups=d['response_groups'])
-    assert(create_hit_rs.status == True)
+    response = create_hit(connection, q, d)
+    assert(response.status == True)
     temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
-    if create_hit_rs[0].IsValid == 'True':
+    if response[0].IsValid == 'True':
       outstr = template.render(temp, {'message': """Your HIT was created. </br>
                                           The HITId is %s </br>
-                                       <a href="/">Input another YAML</a>""" % create_hit_rs[0].HITId})
+                                       <a href="/">Input another YAML</a>""" % response[0].HITId})
     else:
       outstr = template.render(temp, {'message': "Your HIT was not created"})
     self.response.out.write(outstr)
