@@ -9,10 +9,11 @@ from google.appengine.ext.webapp import blobstore_handlers
 from boto.mturk.connection import MTurkConnection
 from boto.mturk.question import ExternalQuestion
 from boto.mturk.price import Price
+from boto.exception import BotoClientError, BotoServerError
 
 from pprint import pprint as pp
 
-import cgi, os, yaml, urllib
+import cgi, os, yaml, urllib, logging
 
 
 def mturk_connection(data):
@@ -21,6 +22,10 @@ def mturk_connection(data):
   , aws_secret_access_key=data['aws_secret_access_key']
   , host=data['aws_host']
   )
+
+
+def boto_response_error(response):
+  return '%s: %s' % (response.errors[0][0], response.errors[0][1])
 
 
 class RequestHandler(webapp.RequestHandler):
@@ -61,7 +66,8 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
           balance = connection.get_account_balance()[0]
           temp = os.path.join(os.path.dirname(__file__), 'templates/confirm_details.htm')
           outstr = template.render(temp, {'message': message, 'blob_key': raw_resource, 'balance': balance})
-        except:
+        except (BotoClientError, BotoServerError), response:
+          logging.error(boto_response_error(response))
           temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
           outstr = template.render(temp, {'message':"""Your YAML file parses, but there is something wrong with
                                                        your AWS keys or the AWS host name </br>
