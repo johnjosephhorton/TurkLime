@@ -45,10 +45,10 @@ def upload_required(fn):
 
     if key:
       try:
-        reader = blobstore.BlobReader(key)
+        self.reader = blobstore.BlobReader(key)
 
         try:
-          self.data = yaml.load(reader)
+          self.data = yaml.load(self.reader)
 
           return fn(self, *args, **kwargs)
         except yaml.YAMLError:
@@ -84,6 +84,7 @@ class Struct(object):
 
 class Experiment(db.Model):
   created = db.DateTimeProperty(auto_now_add=True)
+  params = blobstore.BlobReferenceProperty()
   url = db.StringProperty()
 
 
@@ -144,7 +145,7 @@ class ConfirmationFormHandler(RequestHandler):
   @mturk_connection_required
   def post(self):
     experiment = Experiment()
-
+    experiment.params = self.reader.blob_info.key()
     experiment.url = self.data['external_hit_url']
 
     key = experiment.put()
