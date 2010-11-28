@@ -82,6 +82,11 @@ class Struct(object):
     self.__dict__ = kwargs
 
 
+class Experiment(db.Model):
+  created = db.DateTimeProperty(auto_now_add=True)
+  url = db.StringProperty()
+
+
 class RequestHandler(webapp.RequestHandler):
   def write(self, data):
     self.response.out.write(data)
@@ -163,10 +168,6 @@ class ConfirmationFormHandler(RequestHandler):
     link = Struct(href='/', text='Return to upload form')
 
     self.render('templates/info.htm', {'message': message, 'link': link})
-
-
-class Experiment(db.Model):
-  url = db.StringProperty()
 
 
 # grabs the AssignmentId and workerId from a visiting worker
