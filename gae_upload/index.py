@@ -15,6 +15,14 @@ from pprint import pprint as pp
 import cgi, os, yaml, urllib
 
 
+def mturk_connection(data):
+  return MTurkConnection(
+    aws_access_key_id=data['aws_access_key_id']
+  , aws_secret_access_key=data['aws_secret_access_key']
+  , host=data['aws_host']
+  )
+
+
 # Experimenters upload experiment-defining YAML here
 class MainHandler(webapp.RequestHandler):
   def get(self):
@@ -42,12 +50,8 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
       for key in d.keys():
         message = message + "%s: %s </br>"%(key, d[key])
         try:
-          turk_conn = MTurkConnection(
-            aws_access_key_id = d['aws_access_key_id'],
-            aws_secret_access_key = d['aws_secret_access_key'],
-            host=d['aws_host']
-            )
-          balance = turk_conn.get_account_balance()[0]
+          connection = mturk_connection(d)
+          balance = connection.get_account_balance()[0]
           temp = os.path.join(os.path.dirname(__file__), 'templates/confirm_details.htm')
           outstr = template.render(temp, {'message': message, 'blob_key': raw_resource, 'balance': balance})
         except:
@@ -74,18 +78,14 @@ class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
     resource = str(urllib.unquote(raw_resource))
     blob_reader = blobstore.BlobReader(resource)
     d = yaml.load(blob_reader)
-    turk_conn = MTurkConnection(
-      aws_access_key_id = d['aws_access_key_id'],
-      aws_secret_access_key = d['aws_secret_access_key'],
-      host=d['aws_host']
-      )
+    connection = mturk_connection(d)
     experiment = Experiment()
     experiment.url = d['external_hit_url']
     key = experiment.put() # gets primary key from datastore
     url = "http://unconfounded.appspot.com/landing/" + str(key)
     q = ExternalQuestion(external_url=url, frame_height=800)
     keywords=['easy','fast','interesting']
-    create_hit_rs = turk_conn.create_hit(
+    create_hit_rs = connection.create_hit(
       question=q,
       lifetime= d['lifetime'],
       max_assignments= d['max_assignments'],
