@@ -9,7 +9,7 @@
 
   <p>Your account balance is: {{ account_balance|escape }}</p>
 
-  <form action="{{ form_action|escape }}">
+  <form action="{{ form_action|escape }}" method="POST">
     <p><input type="submit" value="Launch Experiment"></p>
   </form>
 {% endblock %}

@@ -39,8 +39,42 @@ def create_hit(connection, question, data):
   )
 
 
-def boto_response_error(response):
-  return '%s: %s' % (response.errors[0][0], response.errors[0][1])
+def upload_required(fn):
+  def _fn(self, *args, **kwargs):
+    key = self.request.get('key', None)
+
+    if key:
+      try:
+        reader = blobstore.BlobReader(key)
+
+        try:
+          self.data = yaml.load(reader)
+
+          return fn(self, *args, **kwargs)
+        except yaml.YAMLError:
+          self._render_error('Error: badly formatted YAML file')
+      except blobstore.Error:
+        return self.bad_request('Bad key')
+    else:
+      self.bad_request('No key')
+
+  return _fn
+
+
+def mturk_connection_required(fn):
+  def _fn(self, *args, **kwargs):
+    self.connection = mturk_connection(self.data)
+
+    try:
+      return fn(self, *args, **kwargs)
+    except (BotoClientError, BotoServerError), response:
+      message = '%s: %s' % (response.errors[0][0], response.errors[0][1])
+
+      logging.error(message)
+
+      self._render_error('Error: bad AWS credentials')
+
+  return _fn
 
 
 class Struct(object):
@@ -55,6 +89,14 @@ class RequestHandler(webapp.RequestHandler):
   def render(self, path, params):
     self.write(template.render(path, params))
 
+  def reply(self, code, text):
+    self.response.set_status(code)
+
+    self.write(cgi.escape(text))
+
+  def bad_request(self, text='Bad request'):
+    self.reply(400, text)
+
 
 class MainHandler(RequestHandler):
   def get(self):
@@ -64,77 +106,67 @@ class MainHandler(RequestHandler):
 # Experimenters upload experiment-defining YAML here
 class UploadFormHandler(blobstore_handlers.BlobstoreUploadHandler):
   def get(self):
-    self.render('templates/upload_form.htm', {
-      'form_action': blobstore.create_upload_url('/upload')
-    })
+    params = {'form_action': blobstore.create_upload_url('/upload')}
+
+    output = template.render('templates/upload_form.htm', params)
+
+    self.response.out.write(output)
 
   def post(self):
     upload_files = self.get_uploads('file') # 'file' is file upload field in the form
 
     blob_info = upload_files[0]
 
-    self.redirect('/confirm/%s' % blob_info.key())
+    confirmation_form_url = '/confirm?' + urllib.urlencode({'key': blob_info.key()})
+
+    self.redirect(confirmation_form_url)
 
 
 # Experimenter see this screen before the actual program is launched on MTurk.
-class ConfirmationFormHandler(blobstore_handlers.BlobstoreDownloadHandler):
-  def get(self, raw_key):
-    blob_reader = blobstore.BlobReader(str(urllib.unquote(raw_key)))
+class ConfirmationFormHandler(RequestHandler):
+  @upload_required
+  @mturk_connection_required
+  def get(self):
+    account_balance = self.connection.get_account_balance()[0]
 
-    try:
-      data = yaml.load(blob_reader)
+    self.render('templates/confirmation_form.htm', {
+      'experiment_params': [Struct(key=k, value=self.data[k]) for k in self.data.keys()]
+    , 'account_balance': account_balance
+    , 'form_action': self.request.url
+    })
 
-      try:
-        connection = mturk_connection(data)
+  @upload_required
+  @mturk_connection_required
+  def post(self):
+    experiment = Experiment()
 
-        account_balance = connection.get_account_balance()[0]
+    experiment.url = self.data['external_hit_url']
 
-        self._render('templates/confirmation_form.htm', {
-          'experiment_params': [Struct(key=k, value=data[k]) for k in data.keys()]
-        , 'account_balance': account_balance
-        , 'form_action': '/launch/' + raw_key
-        })
-      except (BotoClientError, BotoServerError), response:
-        logging.error(boto_response_error(response))
+    key = experiment.put()
 
-        self._render_error('Error: bad AWS credentials')
-    except yaml.YAMLError:
-      self._render_error('Error: badly formatted YAML file')
+    url = '%s/landing/%s' % (self.request.host_url, str(key))
+
+    question = ExternalQuestion(external_url=url, frame_height=800)
+
+    response = create_hit(self.connection, question, self.data)
+
+    assert(response.status == True)
+
+    if response[0].IsValid == 'True':
+      link = Struct(href='/', text='Create another experiment')
+
+      self.render('templates/info.htm', {'message': 'Created HIT: ' + response[0].HITId, 'link': link})
+    else:
+      self._render_error('Error: could not create HIT')
 
   def _render_error(self, message):
     link = Struct(href='/', text='Return to upload form')
 
-    self._render('templates/info.htm', {'message': message, 'link': link})
-
-  def _render(self, path, params):
-    self.response.out.write(template.render(path, params))
+    self.render('templates/info.htm', {'message': message, 'link': link})
 
 
 class Experiment(db.Model):
   url = db.StringProperty()
-
-
-class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
-  def get(self, raw_resource):
-    resource = str(urllib.unquote(raw_resource))
-    blob_reader = blobstore.BlobReader(resource)
-    d = yaml.load(blob_reader)
-    connection = mturk_connection(d)
-    experiment = Experiment()
-    experiment.url = d['external_hit_url']
-    key = experiment.put() # gets primary key from datastore
-    url = '%s/landing/%s' % (self.request.host_url, str(key))
-    q = ExternalQuestion(external_url=url, frame_height=800)
-    response = create_hit(connection, q, d)
-    assert(response.status == True)
-    temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
-    if response[0].IsValid == 'True':
-      outstr = template.render(temp, {'message': """Your HIT was created. </br>
-                                          The HITId is %s </br>
-                                       <a href="/">Input another YAML</a>""" % response[0].HITId})
-    else:
-      outstr = template.render(temp, {'message': "Your HIT was not created"})
-    self.response.out.write(outstr)
 
 
 # grabs the AssignmentId and workerId from a visiting worker
@@ -185,8 +217,7 @@ def handlers():
   return [
     ('/', MainHandler)
   , ('/upload', UploadFormHandler)
-  , ('/confirm/([^/]+)?', ConfirmationFormHandler)
-  , ('/launch/([^/]+)?', LaunchExperiment)
+  , ('/confirm', ConfirmationFormHandler)
   , ('/landing/([^/]+)?', LandingPage)
   , ('/submit', BackToTurk)
   ]
