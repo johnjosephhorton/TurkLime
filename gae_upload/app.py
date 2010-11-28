@@ -8,12 +8,9 @@ from google.appengine.ext.webapp import blobstore_handlers
 
 from boto.mturk.connection import MTurkConnection
 from boto.mturk.question import ExternalQuestion
-from boto.mturk.price import Price
 from boto.exception import BotoClientError, BotoServerError
 
-from pprint import pprint as pp
-
-import cgi, os, yaml, urllib, logging
+import cgi, yaml, urllib, logging
 
 
 def mturk_connection(data):
