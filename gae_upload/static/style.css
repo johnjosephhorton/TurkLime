@@ -1,0 +1,38 @@
+body {
+  margin: 0;
+  font-family: "Helvetica", sans-serif;
+  font-size: 12pt;
+}
+
+h1, h2, form, p, ul, li, input {
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, p, ul {
+  margin: 20px;
+}
+
+h1 {
+  font-size: 22pt;
+}
+
+h2 {
+  font-size: 16pt;
+}
+
+ul {
+  list-style: none;
+}
+
+li {
+  margin-bottom: 10px;
+}
+
+li .label {
+  font-weight: bold;
+}
+
+li .value {
+  margin-left: 5px;
+}

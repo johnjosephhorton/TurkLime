@@ -153,7 +153,7 @@ class ConfirmationFormHandler(RequestHandler):
     account_balance = self.connection.get_account_balance()[0]
 
     self.render('templates/confirmation_form.htm', {
-      'experiment_params': [Struct(key=k, value=self.data[k]) for k in self.data.keys()]
+      'experiment_params': self._experiment_params()
     , 'account_balance': account_balance
     , 'form_action': self.request.url
     })
@@ -181,6 +181,18 @@ class ConfirmationFormHandler(RequestHandler):
       self.render('templates/info.htm', {'message': 'Created HIT: ' + response[0].HITId, 'link': link})
     else:
       self._render_error('Error: could not create HIT')
+
+  def _experiment_params(self):
+    params = []
+
+    for key in sorted(self.data.keys()):
+      value = self.data[key]
+
+      if type(value) == list: value = ', '.join(value)
+
+      params.append(Struct(label=key.replace('_', ' ').capitalize(), value=value))
+
+    return params
 
   def _render_error(self, message):
     link = Struct(href='/', text='Return to upload form')

@@ -1,11 +1,13 @@
 {% extends "_base.htm" %}
 
 {% block bodycontent %}
-  <h2>Experiment Details---Please check before launching</h2>
+  <h2>Experiment Confirmation</h2>
 
-{% for param in experiment_params %}
-  <p>{{ param.key|escape }}: {{ param.value|escape }}</p>
-{% endfor %}
+  <ul>
+    {% for param in experiment_params %}
+      <li><span class="label">{{ param.label|escape }}</span>: <span class="value">{{ param.value|escape }}</span></li>
+    {% endfor %}
+  </ul>
 
   <p>Your account balance is: {{ account_balance|escape }}</p>
 
