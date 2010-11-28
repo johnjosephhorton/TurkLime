@@ -1,8 +1,13 @@
 {% extends "_base.htm" %}
+
 {% block bodycontent %}
-<h2>Upload YAML File with Experiment Details</h2>
-<a href="/static/sample.txt">Sample YAML file</a></br>
-<form action={{ upload_url }} method="POST" enctype="multipart/form-data">
-Upload File: <input type="file" name="file"><br> 
-<input type="submit" name="submit" value="Submit"> </form>
+  <h2>Upload YAML File with Experiment Details</h2>
+
+  <p><a href="/static/sample.txt">Sample YAML file</a></p>
+
+  <form action="{{ upload_url }}" method="POST" enctype="multipart/form-data">
+    <p>Upload File: <input type="file" name="file"></p>
+
+    <p><input type="submit" value="Submit"></p>
+  </form>
 {% endblock %}
