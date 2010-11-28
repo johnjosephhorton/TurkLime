@@ -1,3 +1,4 @@
+from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.ext.webapp.util import run_wsgi_app as run_wsgi
@@ -49,6 +50,7 @@ class ConfirmationFormHandler(RequestHandler):
   @mturk_connection_required
   def post(self):
     experiment = Experiment()
+    experiment.owner = users.get_current_user()
     experiment.params = self.reader.blob_info.key()
     experiment.url = self.data['external_hit_url']
 
