@@ -72,7 +72,7 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
           outstr = template.render(temp, {'message':"""Your YAML file parses, but there is something wrong with
                                                        your AWS keys or the AWS host name </br>
                                                         <a href="/">Return to file input</a>"""})
-    except:
+    except yaml.YAMLError:
       message = """There was a problem with your YAML file format. </br>
                    Check the example. </br>
                    <a href="/">Return to file input</a>"""
