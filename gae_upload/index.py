@@ -23,13 +23,20 @@ def mturk_connection(data):
   )
 
 
+class RequestHandler(webapp.RequestHandler):
+  def write(self, data):
+    self.response.out.write(data)
+
+  def render(self, path, params):
+    self.write(template.render(path, params))
+
+
 # Experimenters upload experiment-defining YAML here
-class MainHandler(webapp.RequestHandler):
+class MainHandler(RequestHandler):
   def get(self):
-    upload_url = blobstore.create_upload_url('/upload')
-    temp = os.path.join(os.path.dirname(__file__), 'templates/create_experiment.htm')
-    outstr = template.render(temp, {'upload_url': upload_url})
-    self.response.out.write(outstr)
+    self.render('templates/create_experiment.htm', {
+      'upload_url': blobstore.create_upload_url('/upload')
+    })
 
 
 class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
@@ -108,20 +115,20 @@ class LaunchExperiment(blobstore_handlers.BlobstoreDownloadHandler):
 
 
 # grabs the AssignmentId and workerId from a visiting worker
-class LandingPage(webapp.RequestHandler):
+class LandingPage(RequestHandler):
   def get(self, gae_key):
     gae_key = str(urllib.unquote(gae_key))
     worker_id = self.request.GET.get('workerId', '')
     assignment_id = self.request.GET.get('assignmentId', '')
-    temp = os.path.join(os.path.dirname(__file__), 'templates/info.htm')
+
     if assignment_id == 'ASSIGNMENT_ID_NOT_AVAILABLE':
       message = """You need to accept the HIT"""
-      outstr = template.render(temp, {'message': message})
-      self.response.out.write(outstr)
+
+      self.render('templates/info.htm', {'message': message})
     elif worker_id == "":
       message = """Cannot parse your workerId. Are you accessing this page from outside MTurk?"""
-      outstr = template.render(temp, {'message': message})
-      self.response.out.write(outstr)
+
+      self.render('templates/info.htm', {'message': message})
     else:
       key = assignment_id
       base = db.get(gae_key).url
@@ -131,7 +138,7 @@ class LandingPage(webapp.RequestHandler):
 
 # parses the submit originating from Limesurvey---passes back to
 # to MTurk to close the loop. Passes the assignment id, survey id and ssid.
-class BackToTurk(webapp.RequestHandler):
+class BackToTurk(RequestHandler):
   def get(self):
     assignment_id = self.request.GET.get('key', '')
     ssid = self.request.GET.get('ssid', '')
